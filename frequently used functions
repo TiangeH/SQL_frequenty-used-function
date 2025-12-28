@@ -1,0 +1,102 @@
+/*using row_number()*/
+
+SELECT
+        encounter_id
+        order_id,
+        order_status,
+        updated_at,
+        ROW_NUMBER() OVER (
+            PARTITION BY encounter_id, order_id
+            ORDER BY updated_at DESC
+        ) AS row_num
+    FROM encounter_orders
+
+--great example from Chatgbt to show how
+/*
+ROW_NUMBER(), RANK(), and DENSE_RANK() differ
+student_id	test_score
+101	        95
+102	        90
+103	        90
+104	        85
+*/
+SELECT
+    student_id,
+    test_score,
+
+    ROW_NUMBER() OVER (
+        ORDER BY test_score DESC
+    ) AS row_number,
+
+    RANK() OVER (
+        ORDER BY test_score DESC
+    ) AS rank,
+
+    DENSE_RANK() OVER (
+        ORDER BY test_score DESC
+    ) AS dense_rank
+
+FROM student_scores
+
+/*
+student_id	score	ROW_NUMBER	RANK	DENSE_RANK
+101	        95	  1	            1	    1
+102	        90	  2	            2	    2
+103	        90	  3	            2	    2
+104	        85	  4	            4	    3
+*/
+
+/*merge multiple rows into one*/
+SELECT 
+					   SS.PAT_ID,
+					   'immunosuppressive' [Type],
+					   STUFF((SELECT ', ' + US. [immunosuppressive]
+					          FROM (SELECT 
+									  DISTINCT(PAT_ID)PAT_ID
+									  ,[immunosuppressive]
+									FROM Medication_grouper
+									WHERE immunosuppressive is not null) US
+					          WHERE US.PAT_ID = SS.PAT_ID 
+					          FOR XML PATH('')), 1, 1, '') [Value]
+FROM (SELECT 
+									  DISTINCT(PAT_ID)PAT_ID
+									  ,[immunosuppressive]
+									FROM Medication_grouper
+									WHERE immunosuppressive is not null) SS
+					GROUP BY SS.PAT_ID
+
+/*covert number value like '21592' to date*/
+cast(dateadd(d,cast(mea.meas_value as numeric),'12/31/1840') as date) end as [Date]
+
+/*lag and lead*/
+#lag and lead
+select 
+				 trs.Encounter_ID [Current CSN]
+				,trs.DEPARTMENT_NAME [Current Department]
+				,trs.EFFECTIVE_TIME [Current Effective Time]
+        ,trs.[Event Name] [Current Event]
+
+				,LAG(trs.DEPARTMENT_NAME) OVER (PARTITION BY trs.PAT_MRN_ID ORDER BY trs.effective_time) [Previous Department]
+				,LAG(trs.[Event Name]) OVER (PARTITION BY  trs.PAT_MRN_ID ORDER BY trs.effective_time) [Previous Event]
+        ,LAG(trs.effective_time) OVER (PARTITION BY trs.PAT_MRN_ID ORDER BY trs.effective_time)[Previous Effective Dttm]
+
+				,LEAD(trs.DEPARTMENT_NAME) OVER (PARTITION BY trs.PAT_MRN_ID ORDER BY trs.effective_time)[Next Department]
+				,LEAD(trs.[Event Name]) OVER (PARTITION BY  trs.PAT_MRN_ID ORDER BY trs.effective_time) [Next Event]
+        ,LEAD(trs.effective_time) OVER (PARTITION BY trs.PAT_MRN_ID ORDER BY trs.effective_time)[Next Effective Time]
+
+from mock_patient_movement_table
+
+/*create temp table and abstract data from temp table*/
+
+SELECT CONCAT('Saturn',po_item_nbr,' ','Saturn_site',po_vn_nbr) AS mergedColumns
+INTO #temppp_tmq
+FROM PURCHASING_TABLE_NAME where DATEDIFF(month, po_order_dt, GETDATE()) < 24 and hsp_site='Saturn_site' and po_item_nbr in ('12345')
+
+SELECT COUNT(1) AS NumberOfRows,
+   mergedColumns
+FROM #temppp_cvh
+GROUP BY mergedColumns order by NumberOfRows desc
+
+
+
+
